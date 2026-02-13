@@ -1,17 +1,18 @@
 {
+    "class": "$this->finalclass$",
     "id": "$this->id$",
     "ref": "$this->ref$",
     "title": "$this->title$",
     "description": "$this->description$",
     "status": "$this->status$",
-    "priority": "$this->priority$",
-    "impact": "$this->impact$",
-    "urgency": "$this->urgency$",
-    "service_id": "$this->service_id->name$",
     "caller_id": "$this->caller_id->name$",
-    "agent_id": "$this->agent_id->name$",
-    "ostream": "$this->ostream$",
     "org_id": "$this->org_id->name$",
-    "creation_date": "$this->creation_date$",
-    "last_update": "$this->last_update$"
+    "team_id": "$this->team_id->name$",
+    "operator_id": "$this->agent_id->name$",
+    "priority": "$this->priority$",
+    "creation_date": "$this->start_date$",
+    "last_update": "$this->last_update$",
+    "private_log": "$this->head(private_log)$",
+    "public_log": "$this->head(public_log)$",
+    "contacts_list": "$this->Get('contacts_list')$"
 }
