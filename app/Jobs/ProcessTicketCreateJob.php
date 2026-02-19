@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\ItopServiceBuilder;
+use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,19 +33,34 @@ class ProcessTicketCreateJob implements ShouldQueue
         \info('Start ProcessTicketCreateJob');
         
         $ticket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($this->ticketId)->first();
-        info('update JSON payload');
-        info($ticket);
-
-        /* catatan: untuk contact tidak perlu di sync. Hanya ticket saya dan attachment-nya */
-        $payload = self::generatePayload($ticket);
-        info('payload JSON');
-        info($payload);
 
         /* call Itop Elitery API */
         $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
-        $response = $service->callApi($payload);
-        info('response from itop API');
-        info($response);
+        $newTicket = $service->callApi($this->generatePayload($ticket));
+        $normalizedTicket = ItopServiceBuilder::normalizeItopCreateResponse($newTicket);
+        info('ticket created');
+        
+        $attachments = $ticket->attachments;
+
+        if (!$attachments) return;
+
+        info('generate payload for attachment create');
+        foreach ($attachments as $attachment) {
+            $payload = ItopServiceBuilder::payloadAttachmentCreate([
+                'item_class' => $ticket->finalclass,
+                'item_id' => 14,
+                'item_org_id' => env('ORG_ID_ITOP_ELITERY', 2),
+                'contents' => [
+                    'filename' => $attachment->contents_filename,
+                    'mimetype' => $attachment->contents_mimetype,
+                    'binary' => base64_encode($attachment->contents_data),
+                ]
+            ]);
+
+            $response = $service->callApi($payload);
+        }
+
+        info('End ProcessTicketCreateJob');
     }
 
     public function generatePayload($ticket)
