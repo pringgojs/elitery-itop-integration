@@ -32,4 +32,13 @@ class ItopExternalReciverController extends Controller
             'received' => $data
         ]);
     }
+
+    public function createAttachment(Request $request)
+    {
+        $data = $request->all();
+        info('Received JSON payload for create attachment', $data);
+        return response()->json([
+            'received' => $data
+        ]);
+    }
 }

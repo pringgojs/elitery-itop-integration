@@ -39,6 +39,7 @@ class ProcessTicketCreateJob implements ShouldQueue
         $newTicket = $service->callApi($this->generatePayload($ticket));
         $normalizedTicket = ItopServiceBuilder::normalizeItopCreateResponse($newTicket);
         info('ticket created');
+        info($normalizedTicket);
         
         $attachments = $ticket->attachments;
 
@@ -48,7 +49,7 @@ class ProcessTicketCreateJob implements ShouldQueue
         foreach ($attachments as $attachment) {
             $payload = ItopServiceBuilder::payloadAttachmentCreate([
                 'item_class' => $ticket->finalclass,
-                'item_id' => 14,
+                'item_id' => $normalizedTicket['object']['id'],
                 'item_org_id' => env('ORG_ID_ITOP_ELITERY', 2),
                 'contents' => [
                     'filename' => $attachment->contents_filename,

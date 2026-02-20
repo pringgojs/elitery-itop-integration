@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::prefix('v1')->group(function () {
+    Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
     Route::post('create-ticket', [ItopExternalReciverController::class, 'createTicket']);
     Route::post('update-ticket', [ItopExternalReciverController::class, 'updateTicket']);
 });
