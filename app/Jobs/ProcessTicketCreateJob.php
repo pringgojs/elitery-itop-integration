@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
+use App\Helpers\TicketMappingSync;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -10,6 +10,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
+use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
+use Pringgojs\LaravelItop\Services\ResponseNormalizer;
 
 class ProcessTicketCreateJob implements ShouldQueue
 {
@@ -37,7 +39,7 @@ class ProcessTicketCreateJob implements ShouldQueue
         /* call Itop Elitery API */
         $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
         $newTicket = $service->callApi($this->generatePayload($ticket));
-        $normalizedTicket = ItopServiceBuilder::normalizeItopCreateResponse($newTicket);
+        $normalizedTicket = ResponseNormalizer::normalizeItopCreateResponse($newTicket);
         info('ticket created');
         info($normalizedTicket);
         
@@ -60,6 +62,12 @@ class ProcessTicketCreateJob implements ShouldQueue
 
             $response = $service->callApi($payload);
         }
+
+        //sync mapping
+        TicketMappingSync::sync(
+            $externalTicketId = $ticket->id,
+            $internalTicketId = $normalizedTicket['object']['id'],
+            $ticket->finalclass);
 
         info('End ProcessTicketCreateJob');
     }

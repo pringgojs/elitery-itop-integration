@@ -1,55 +1,48 @@
 <?php
 
-namespace App\Jobs;
+namespace App\Console\Commands;
 
 use App\Helpers\TicketMappingSync;
 use App\Models\TicketMapping;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Console\Command;
 use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
 use Pringgojs\LaravelItop\Services\ResponseNormalizer;
 
-class ProcessTicketUpdateJob implements ShouldQueue
+class TicketUpdateTest extends Command
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public $ticketId;
-    public $service;
-    public $mapping;
     /**
-     * Create a new job instance.
+     * The name and signature of the console command.
+     *
+     * @var string
      */
-    public function __construct($ticketId)
-    {
-        $this->ticketId = $ticketId;
-        $this->service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
-        $this->mapping = TicketMapping::where('external_ticket_id', $ticketId)->first();
-    }
+    protected $signature = 'app:ticket-update-test';
+
+    public $ticketId = 44;
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
 
     /**
-     * Execute the job.
+     * Execute the console command.
      */
-    public function handle(): void
+    public function handle()
     {
-        // get ticket
+        /* call Itop Elitery API */
         $ticket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($this->ticketId)->first();
-        
-        // remove attachment
         self::removeAttachment();
         
-        // generate payload for update ticket
-        $updatePayload = $this->generatePayload($ticket, $this->mapping->elitery_ticket_id);
+        $mapping = TicketMapping::where('external_ticket_id', $this->ticketId)->first();
+        $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
+        $updatePayload = $this->generatePayload($ticket, $mapping->elitery_ticket_id);
+        // dd($updatePayload);
+        $newTicket = $service->callApi($updatePayload);
 
-        // call API update ticket
-        $updateTicket = $this->service->callApi($updatePayload);
-
-        // normalize response update ticket
-        $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($updateTicket);
+        $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($newTicket);
         self::createAttachment($ticket, $normalizedTicket);
 
         //sync mapping
@@ -57,15 +50,15 @@ class ProcessTicketUpdateJob implements ShouldQueue
             $externalTicketId = $ticket->id,
             $internalTicketId = $normalizedTicket['object']['id'],
             $ticket->finalclass);
-
-        info("ProcessTicketUpdateJob done for ticket id: " . $ticket->id);
-        
+            
+        dd("done");
     }
 
-    public function generatePayload($ticket, $internalTicketId)
+    public function generatePayload($ticket, $key)
     {
-        $payload = [
+        $payload= [
             'operation' => 'core/update',
+            'key' => $key,
             'comment' => 'ticket updated from API',
             'class' => $ticket->finalclass,
             'output_fields' => 'id, ref, title, status',
@@ -73,8 +66,7 @@ class ProcessTicketUpdateJob implements ShouldQueue
             'caller_id' => env('CALLER_ID_ITOP_ELITERY', 12),
             'title' => $ticket->title,
             'description' => $ticket->description,
-            'private_log' => $ticket->getPrivateLog(),
-            'key' => $internalTicketId
+            'private_log' => $ticket->getPrivateLog()
         ];
 
         return ItopServiceBuilder::payloadTicketCreate($payload);
@@ -83,9 +75,15 @@ class ProcessTicketUpdateJob implements ShouldQueue
     public function removeAttachment()
     {
         info('Start ProcessTicketUpdateJob - removeAttachment');
+        $mapping = TicketMapping::where('external_ticket_id', $this->ticketId)->first();
+        
+        if (!$mapping) return;
         
         /* get ticket from elitery database */
-        $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->mapping->elitery_ticket_id)->first();
+        $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($mapping->elitery_ticket_id)->first();
+        
+        /* call Itop Elitery API */
+        $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
         
         /* generate payload for attachment delete */
         foreach ($ticket->attachments as $attachment) {
@@ -93,7 +91,7 @@ class ProcessTicketUpdateJob implements ShouldQueue
                 'key' => $attachment->id
             ]);
 
-            $response = $this->service->callApi($payload);
+            $response = $service->callApi($payload);
             info('attachment deleted with response: ' . json_encode($response));
         }
     }
@@ -116,8 +114,10 @@ class ProcessTicketUpdateJob implements ShouldQueue
                     'binary' => base64_encode($attachment->contents_data),
                 ]
             ]);
-
-            $response = $this->service->callApi($payload);
+            
+            $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
+            $response = $service->callApi($payload);
         }
     }
+
 }

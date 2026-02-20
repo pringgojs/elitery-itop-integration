@@ -26,7 +26,7 @@ class ItopExternalReciverController extends Controller
     public function updateTicket(Request $request)
     {
         $data = $request->all();
-        ProcessTicketUpdateJob::dispatch(env('DB_CONNECTION_ITOP_EXTERNAL'), $data['id']);
+        ProcessTicketUpdateJob::dispatch($data['id']);
         info('Update JSON payload for update queued', $data);
         return response()->json([
             'received' => $data
