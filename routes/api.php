@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ItopEliteryReciverController;
+use App\Http\Controllers\Api\V1\ItopExternalReciverController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\ItopExternalReciverController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::prefix('v1')->group(function () {
+    Route::post('ticket-state-change', [ItopEliteryReciverController::class, 'ticketStateChange']);
     Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
     Route::post('create-ticket', [ItopExternalReciverController::class, 'createTicket']);
     Route::post('update-ticket', [ItopExternalReciverController::class, 'updateTicket']);
