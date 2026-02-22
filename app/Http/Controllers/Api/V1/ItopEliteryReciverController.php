@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Constants\Constants;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessTicketCreateJob;
+use App\Jobs\ProcessTicketStateChangeJob;
 use App\Jobs\ProcessTicketUpdateJob;
 use Illuminate\Http\Request;
 use Pringgojs\LaravelItop\Models\Ticket;
@@ -18,11 +19,10 @@ class ItopEliteryReciverController extends Controller
     {
         $data = $request->all();
         // ProcessTicketCreateJob::dispatch($data['id']);
-        info('update status user request', $data);
-        $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->find($data['id']);
-        if ($ticket) {
-            info('Ticket found', ['status' => $ticket->status()]);
-        }
+        info('update state', $data);
+
+        ProcessTicketStateChangeJob::dispatch($data['id']);
+
         return response()->json([
             'received' => $data
         ]);

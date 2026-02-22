@@ -1,0 +1,95 @@
+// User Request - Move to Waiting for Approval:
+{
+    "operation": "core/apply_stimulus",
+    "class": "UserRequest",
+    "key": 22,
+    "stimulus": "ev_wait_for_approval",
+    "fields": {
+        "public_log": "Request sent for approval"
+    },
+    "comment": "Move to approval"
+}
+// Waiting for Approval - Approve:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_approve",
+  "fields": {
+    "public_log": "Request approved"
+  },
+  "comment": "Approved via API"
+}
+// Waiting for Approval - Reject:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_reject",
+  "fields": {
+    "public_log": "Request rejected"
+  },
+  "comment": "Rejected via API"
+}
+
+// Waiting for Approval - Assign:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_assign",
+  "fields": {
+    "agent_id": 12,
+    "public_log": "Ticket assigned"
+  },
+  "comment": "Assigned by system"
+}
+// Waiting for Approval or (assigned) - Set Pending:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_pending",
+  "fields": {
+    "pending_reason": "waiting_for_user",
+    "public_log": "Waiting user response"
+  },
+  "comment": "Set pending"
+}
+
+// resume from pending to assigned:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_assign",
+  "fields": {
+    "public_log": "Resume work"
+  },
+  "comment": "Resume from pending"
+}
+
+// resolve the ticket:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_resolve",
+  "fields": {
+    "solution": "Issue fixed successfully",
+    "public_log": "Ticket resolved"
+  },
+  "comment": "Resolved by system"
+}
+// close the ticket:
+{
+  "operation": "core/apply_stimulus",
+  "class": "UserRequest",
+  "key": 22,
+  "stimulus": "ev_close",
+  "fields": {
+    "public_log": "Ticket closed"
+  },
+  "comment": "Closed by system"
+}
+
