@@ -11,7 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
-use Pringgojs\LaravelItop\Services\ResponseNormalizer;
+use Pringgojs\LaravelItop\Utils\ResponseNormalizer;
 
 class ProcessTicketCreateJob implements ShouldQueue
 {

@@ -89,14 +89,14 @@ class TicketChangeStateTest extends Command
             $pendingReason = $ticketElitery->type()->pending_reason;
             info('pending_reason value: ' . var_export($pendingReason, true));
             $payload['fields']['pending_reason'] = $pendingReason;
-            $payload['private_log'] = 'Waiting user response';
+            $payload['private_log'] = 'Ticket Pending with reason: ' . $pendingReason;
         }
 
         if ($ticketElitery->status(true) === 'resolved' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
             info('Ticket resolved');
             $payload['fields']['resolution_code'] = $ticketElitery->type()->resolution_code;
             $payload['fields']['solution'] = $ticketElitery->type()->solution;
-            $payload['private_log'] = 'Ticket Resolved';
+            $payload['private_log'] = 'Ticket Resolved with resolution: ' . $ticketElitery->type()->resolution;
         }
 
         if ($ticketElitery->status(true) === 'closed' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {

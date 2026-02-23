@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
-use Pringgojs\LaravelItop\Services\ResponseNormalizer;
+use Pringgojs\LaravelItop\Utils\ResponseNormalizer;
 
 class TicketUpdateTest extends Command
 {
