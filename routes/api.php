@@ -21,7 +21,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::prefix('v1')->group(function () {
+    Route::post('ticket-update-private-log', [ItopEliteryReciverController::class, 'ticketUpdatePrivateLog']);
     Route::post('ticket-state-change', [ItopEliteryReciverController::class, 'ticketStateChange']);
+
     Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
     Route::post('create-ticket', [ItopExternalReciverController::class, 'createTicket']);
     Route::post('update-ticket', [ItopExternalReciverController::class, 'updateTicket']);

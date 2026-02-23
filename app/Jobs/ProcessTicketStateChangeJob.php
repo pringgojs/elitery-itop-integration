@@ -30,10 +30,15 @@ class ProcessTicketStateChangeJob implements ShouldQueue
         $this->ticketId = $ticketId;
         $this->service = new ApiService(env('ITOP_EXTERNAL_BASE_URL'), env('ITOP_EXTERNAL_USERNAME'), env('ITOP_EXTERNAL_PASSWORD'));
         $this->mapping = TicketMapping::where('elitery_ticket_id', $ticketId)->first();
+
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $ticketId);
+            return;
+        }
     }
 
     /**
-     * Execute the job. Poses update ticket state change to external itop. This job will be dispatched when there is a state change in the elitery ticket.
+     * Execute the job. Poses update ticket state change from internal elitery to external itop. This job will be dispatched when there is a state change in the elitery ticket.
      */
     public function handle(): void
     {
@@ -43,9 +48,9 @@ class ProcessTicketStateChangeJob implements ShouldQueue
         // generate payload for update ticket
         $updatePayload = $this->generatePayload($ticket);
 
-
         // call API update ticket
         $updateTicket = $this->service->callApi($updatePayload);
+        
         //sync mapping
         TicketMappingSync::sync(
             $externalTicketId = $this->mapping->external_ticket_id,

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('elitery_ticket_id');
             $table->string('ticket_class')->nullable();
             $table->timestamp('last_sync_at')->nullable();
+            $table->boolean('is_stop_sync')->default(false); // untuk menghentikan proses sync sementara, agar tidak terjadi loop update yang tidak berujung antara elitery dan itop external
             $table->timestamps();
         });
     }

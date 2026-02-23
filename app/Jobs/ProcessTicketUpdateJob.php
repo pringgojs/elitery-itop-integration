@@ -29,13 +29,33 @@ class ProcessTicketUpdateJob implements ShouldQueue
         $this->ticketId = $ticketId;
         $this->service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
         $this->mapping = TicketMapping::where('external_ticket_id', $ticketId)->first();
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $ticketId);
+            return;
+        }
     }
+    /**
+     * PROSES UPDATE TIKET DARI EXTERNAL KE INTERNAL ELITERY. 
+     * PROSES INI AKAN MENGHAPUS SELURUH ATTACHMENT YANG ADA DI INTERNAL ELITERY DAN MEMBUAT ULANG ATTACHMENT SESUAI DENGAN YANG ADA DI EXTERNAL ITOP. 
+     * PROSES INI JUGA AKAN MELAKUKAN SYNC MAPPING ANTARA TICKET EXTERNAL DAN INTERNAL ELITERY.
+     */
 
     /**
      * Execute the job.
      */
     public function handle(): void
     {
+        info('Start ProcessTicketUpdateJob for ticket id: ' . $this->ticketId);
+
+        if ($this->mapping->is_stop_sync) {
+            info("Stop sync is true for ticket id: " . $this->ticketId);
+            // set is_stop_sync to false, agar proses update berikutnya bisa berjalan normal
+            $this->mapping->is_stop_sync = false;
+            $this->mapping->save();
+            return;
+        }
+
+        info("EKSEKUSI YA....");
         // get ticket
         $ticket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($this->ticketId)->first();
         
