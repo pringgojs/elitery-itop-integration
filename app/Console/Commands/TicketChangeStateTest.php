@@ -79,6 +79,12 @@ class TicketChangeStateTest extends Command
             ]
         ];
 
+        if ($ticketElitery->status(true) === 'wait_for_approval' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
+            // $payload['fields']['agent_id'] = $ticketElitery->type()->pending_reason;
+            info('Ticket wait for approval');
+            $payload['private_log'] = 'Ticket Wait For Approval';
+        }
+
         if ($ticketElitery->status(true) === 'assigned' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
             // $payload['fields']['agent_id'] = $ticketElitery->type()->pending_reason;
             info('Ticket assigned');
@@ -102,6 +108,7 @@ class TicketChangeStateTest extends Command
         if ($ticketElitery->status(true) === 'closed' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
             info('Ticket closed');
             $payload['private_log'] = 'Ticket Closed';
+            $payload['fields']['user_commment'] = $ticketElitery->type()->user_commment ?? '-';
         }
 
         info('Generated payload for ticket state change', $payload);
