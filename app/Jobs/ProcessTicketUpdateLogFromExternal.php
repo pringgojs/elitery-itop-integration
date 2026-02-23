@@ -14,7 +14,7 @@ use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
 use Pringgojs\LaravelItop\Services\ResponseNormalizer;
 
-class ProcessTicketUpdateLogFromElitery implements ShouldQueue
+class ProcessTicketUpdateLogFromExternal implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -27,7 +27,7 @@ class ProcessTicketUpdateLogFromElitery implements ShouldQueue
     public function __construct($ticketId)
     {
         $this->ticketId = $ticketId;
-        $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
+        $this->mapping = TicketMapping::where('external_ticket_id', $this->ticketId)->first();
 
     }
 
@@ -36,25 +36,25 @@ class ProcessTicketUpdateLogFromElitery implements ShouldQueue
      */
     public function handle(): void
     {
-        \info('Start ProcessTicketUpdateLogFromEliteryJob');
+        \info('Start ProcessTicketUpdateLogFromExternalJob');
         
-        $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->ticketId)->first();
+        $ticket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($this->ticketId)->first();
 
         //sync mapping harus dipanggil sebelum proses update, agar field is_stop_sync bisa di set true, sehingga tidak terjadi loop update yang tidak berujung antara elitery dan itop external
         $result = TicketMappingSync::sync(
-            $externalTicketId = $this->mapping->external_ticket_id,
-            $internalTicketId = $ticket->id,
+            $externalTicketId = $ticket->id,
+            $internalTicketId = $this->mapping->elitery_ticket_id,
             $ticket->finalclass,
             $isStopSync = true); // stop sync true, agar tidak terjadi loop update yang tidak berujung antara elitery dan itop external
         
         /* call Itop Elitery API */
-        $service = new ApiService(env('ITOP_EXTERNAL_BASE_URL'), env('ITOP_EXTERNAL_USERNAME'), env('ITOP_EXTERNAL_PASSWORD'));
+        $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
         $payload = $this->generatePayload($ticket);
         
         $exec = $service->callApi($this->generatePayload($ticket));
 
         
-        info('End ProcessTicketUpdateLogFromEliteryJob');
+        info('End ProcessTicketUpdateLogFromExternalJob');
     }
 
     public function generatePayload($ticket)

@@ -6,6 +6,7 @@ use App\Constants\Constants;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessTicketCreateJob;
 use App\Jobs\ProcessTicketUpdateJob;
+use App\Jobs\ProcessTicketUpdateLogFromExternal;
 use Illuminate\Http\Request;
 
 class ItopExternalReciverController extends Controller
@@ -33,6 +34,17 @@ class ItopExternalReciverController extends Controller
         ]);
     }
 
+    public function ticketUpdatePrivateLog(Request $request)
+    {
+        $data = $request->all();
+        info('Received JSON payload for update private log', $data);
+        ProcessTicketUpdateLogFromExternal::dispatch($data['id']);
+        return response()->json([
+            'received' => $data
+        ]);
+    }
+
+    // ini belum dipakai ya
     public function createAttachment(Request $request)
     {
         $data = $request->all();
