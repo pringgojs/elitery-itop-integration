@@ -91,13 +91,14 @@ class ProcessTicketStateChangeJob implements ShouldQueue
         if ($ticketElitery->status(true) === 'resolved' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
             info('Ticket resolved');
             $payload['fields']['resolution_code'] = $ticketElitery->type()->resolution_code;
-            $payload['fields']['solution'] = $ticketElitery->type()->solution;
+            $payload['fields']['solution'] = strip_tags($ticketElitery->type()->solution);
             $payload['private_log'] = 'Ticket Resolved';
         }
 
         if ($ticketElitery->status(true) === 'closed' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
             info('Ticket closed');
             $payload['private_log'] = 'Ticket Closed';
+            $payload['fields']['user_comment'] = strip_tags($ticketElitery->type()->user_commment);
         }
 
         info('Generated payload for ticket state change', $payload);
