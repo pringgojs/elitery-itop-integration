@@ -26,8 +26,9 @@ Route::prefix('v1')->group(function () {
     Route::post('ticket-state-change', [ItopEliteryReciverController::class, 'ticketStateChange']);
     
     // endpoint for itop external
-    Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
     Route::post('create-ticket', [ItopExternalReciverController::class, 'createTicket']);
     Route::post('update-ticket', [ItopExternalReciverController::class, 'updateTicket']);
     Route::post('update-private-log', [ItopExternalReciverController::class, 'ticketUpdatePrivateLog']);
+    Route::post('update-attachment', [ItopExternalReciverController::class, 'updateAttachment']);
+    Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
 });

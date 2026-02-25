@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Constants\Constants;
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessAttachmentUpdateJob;
 use App\Jobs\ProcessTicketCreateJob;
 use App\Jobs\ProcessTicketUpdateJob;
 use App\Jobs\ProcessTicketUpdateLogFromExternal;
@@ -18,7 +19,7 @@ class ItopExternalReciverController extends Controller
     {
         $data = $request->all();
         ProcessTicketCreateJob::dispatch($data['id']);
-        info('Created JSON payload for create queued', $data);
+        info('Created JSON payload for create ticket queued', $data);
         return response()->json([
             'received' => $data
         ]);
@@ -28,7 +29,7 @@ class ItopExternalReciverController extends Controller
     {
         $data = $request->all();
         ProcessTicketUpdateJob::dispatch($data['id']);
-        info('Update JSON payload for update queued', $data);
+        info('Update JSON payload for update ticket queued', $data);
         return response()->json([
             'received' => $data
         ]);
@@ -44,11 +45,21 @@ class ItopExternalReciverController extends Controller
         ]);
     }
 
-    // ini belum dipakai ya
+    // dipanggil ketika user melakukan upload Attachment, dimana itu masih bersifat temporary
     public function createAttachment(Request $request)
     {
         $data = $request->all();
         info('Received JSON payload for create attachment', $data);
+        return response()->json([
+            'received' => $data
+        ]);
+    }
+
+    public function updateAttachment(Request $request)
+    {
+        $data = $request->all();
+        info('Received JSON payload for update attachment', $data);
+        ProcessAttachmentUpdateJob::dispatch($data['attachment_id'], $data['source'] ?? null);
         return response()->json([
             'received' => $data
         ]);
