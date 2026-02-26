@@ -30,5 +30,6 @@ Route::prefix('v1')->group(function () {
     Route::post('update-ticket', [ItopExternalReciverController::class, 'updateTicket']);
     Route::post('update-private-log', [ItopExternalReciverController::class, 'ticketUpdatePrivateLog']);
     Route::post('update-attachment', [ItopExternalReciverController::class, 'updateAttachment']);
+    Route::post('delete-attachment', [ItopExternalReciverController::class, 'deleteAttachment']);
     Route::post('create-attachment', [ItopExternalReciverController::class, 'createAttachment']);
 });

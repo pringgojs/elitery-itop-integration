@@ -55,11 +55,20 @@ class ItopExternalReciverController extends Controller
         ]);
     }
 
+    public function deleteAttachment(Request $request)
+    {
+        $data = $request->all();
+        info('Received JSON payload for delete attachment', $data);
+        return response()->json([
+            'received' => $data
+        ]);
+    }
+
     public function updateAttachment(Request $request)
     {
         $data = $request->all();
         info('Received JSON payload for update attachment', $data);
-        ProcessAttachmentUpdateJob::dispatch($data['attachment_id'], $data['source'] ?? null);
+        ProcessAttachmentUpdateJob::dispatch($data['source'], $data['item_id'], $data['item_class']);
         return response()->json([
             'received' => $data
         ]);

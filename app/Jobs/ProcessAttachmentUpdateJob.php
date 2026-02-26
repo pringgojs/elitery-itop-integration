@@ -9,7 +9,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Pringgojs\LaravelItop\Models\Attachment;
 use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
@@ -37,27 +36,24 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct($attachmentId, $source)
+    public function __construct($source, $ticketId, $ticketClass)
     {
-        info('Initializing ProcessAttachmentUpdateJob with attachmentId: ' . $attachmentId . ' source: ' . $source);
-        $this->attachmentId = $attachmentId;
+        info('Initializing ProcessAttachmentUpdateJob with ticketId: ' . $ticketId . ' source: ' . $source);
 
         // treat $connection as the source system for bidirectional sync
         $this->source = $source;
 
         if ($this->source == 'elitery') {
             \info('Source is elitery, looking for attachment on elitery DB');
-            $attachment = Attachment::on(env('DB_ITOP_ELITERY'))->whereId($attachmentId)->first();
-            $class = $attachment->item_class;
 
-            if (!in_array($class, $this->objectSupported)) {
-                info("Attachment with id " . $attachmentId . " has unsupported item_class: " . $class);
+            if (!in_array($ticketClass, $this->objectSupported)) {
+                info("Ticket with id " . $ticketId . " has unsupported item_class: " . $ticketClass);
                 $this->invalid = true;
                 return;
             }
 
             
-            $this->sourceTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($attachment->item_id)->first();
+            $this->sourceTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($ticketId)->first();
             $this->mapping = TicketMapping::where('elitery_ticket_id', $this->sourceTicket->id)->first();
             $this->ticketId = $this->sourceTicket->id;
 
@@ -67,16 +63,14 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
             $this->targetTicketId = $this->mapping->external_ticket_id ?? null;
         } else {
             info('Source is external, looking for attachment on external DB');
-            $attachment = Attachment::on(env('DB_ITOP_EXTERNAL'))->whereId($attachmentId)->first();
-            $class = $attachment->item_class;
 
-            if (!in_array($class, $this->objectSupported)) {
-                info("Attachment with id " . $attachmentId . " has unsupported item_class: " . $class);
+            if (!in_array($ticketClass, $this->objectSupported)) {
+                info("Ticket with id " . $ticketId . " has unsupported item_class: " . $ticketClass);
                 $this->invalid = true;
                 return;
             }
 
-            $this->sourceTicket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($attachment->item_id)->first();
+            $this->sourceTicket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($ticketId)->first();
             $this->mapping = TicketMapping::where('external_ticket_id', $this->sourceTicket->id)->first();
             $this->ticketId = $this->sourceTicket->id;
 
@@ -129,7 +123,7 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($updateTicket);
 
         // create attachments on target using source attachments
-        $this->createAttachment($this->sourceTicket, $normalizedTicket);
+        $this->createAttachment($this->sourceTicket);
 
         // sync mapping (external id first, internal second) — keep existing helper contract
         if ($this->source == 'elitery') {
@@ -147,7 +141,7 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         
     }
 
-    public function generatePayload($ticket, $internalTicketId)
+    public function generatePayload($ticket, $targetTicketId)
     {
         $payload = [
             'operation' => 'core/update',
@@ -159,7 +153,7 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
             'title' => $ticket->title,
             'description' => $ticket->description,
             'private_log' => $ticket->getPrivateLog(),
-            'key' => $internalTicketId
+            'key' => $targetTicketId
         ];
 
         return ItopServiceBuilder::payloadTicketCreate($payload);
@@ -189,7 +183,7 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         info('Completed removeAttachment on target DB: ' . $this->targetDb);
     }
 
-    public function createAttachment($ticket, $normalizedTicket)
+    public function createAttachment($ticket)
     {
         info('start createAttachment on target for ticket id: ' . $ticket->id);
         $attachments = $ticket->attachments;
@@ -200,7 +194,7 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         foreach ($attachments as $attachment) {
             $payload = ItopServiceBuilder::payloadAttachmentCreate([
                 'item_class' => $ticket->finalclass,
-                'item_id' => $normalizedTicket['object']['id'],
+                'item_id' => $this->targetTicketId,
                 'item_org_id' => env('ORG_ID_ITOP_ELITERY', 2),
                 'contents' => [
                     'filename' => $attachment->contents_filename,
