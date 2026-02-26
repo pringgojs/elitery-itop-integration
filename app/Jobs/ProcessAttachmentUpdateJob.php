@@ -111,16 +111,19 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         info("Executing bidirectional attachment sync...");
 
         // remove attachments on target system
-        $this->removeAttachment();
+        $this->removeAttachmentWithDB();
 
-        // generate payload for update ticket on target system
-        $updatePayload = $this->generatePayload($this->sourceTicket, $this->targetTicketId);
-
-        // call API update ticket on target
-        $updateTicket = $this->targetService->callApi($updatePayload);
+        // if source from external, sync ticket form dilakukan. Apabila dari elitery, diboleh!.
+        if ($this->source == 'external') {
+            // generate payload for update ticket on target system
+            $updatePayload = $this->generatePayload($this->sourceTicket, $this->targetTicketId);
+    
+            // call API update ticket on target
+            $updateTicket = $this->targetService->callApi($updatePayload);
+        }
 
         // normalize response update ticket
-        $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($updateTicket);
+        // $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($updateTicket);
 
         // create attachments on target using source attachments
         $this->createAttachment($this->sourceTicket);
@@ -181,6 +184,29 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
         }
 
         info('Completed removeAttachment on target DB: ' . $this->targetDb);
+    }
+
+    /** Alternatif selain pake API, agar lifescycle attachment delete tidak ter-trigger.
+     * Issue: ketika delete attachment menggunakan API, maka akan ter-trigger event delete pada model Attachment di Laravel Itop, sehingga akan memanggil API delete attachment lagi yang menyebabkan infinite loop. Solusinya adalah dengan langsung menghapus attachment di database target tanpa melalui API, namun cara ini memiliki risiko jika ada perubahan struktur database atau jika ada logika lain yang ter-trigger ketika delete attachment di database. Oleh karena itu, perlu dipertimbangkan dengan matang sebelum menggunakan cara ini.
+     */
+    public function removeAttachmentWithDB()
+    {
+        info('Start ProcessUpdateAttachmentJob - removeAttachmentWithDB on target DB: ' . $this->targetDb);
+
+        /* get ticket from target database */
+        $ticket = Ticket::on($this->targetDb)->whereId($this->targetTicketId)->first();
+        if (! $ticket) {
+            info('Target ticket not found: ' . $this->targetTicketId);
+            return;
+        }
+
+        /* generate payload for attachment delete on target */
+        foreach ($ticket->attachments as $attachment) {
+            $attachment->delete();
+            info('attachment deleted on target DB: ' . $this->targetDb . ' attachment id: ' . $attachment->id);
+        }
+
+        info('Completed removeAttachmentWithDB on target DB: ' . $this->targetDb);
     }
 
     public function createAttachment($ticket)
