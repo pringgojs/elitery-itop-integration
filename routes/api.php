@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('api_key')->group(function () {
     // endpoint for itop elitery
     Route::post('ticket-update-private-log', [ItopEliteryReciverController::class, 'ticketUpdatePrivateLog']);
     Route::post('ticket-state-change', [ItopEliteryReciverController::class, 'ticketStateChange']);
