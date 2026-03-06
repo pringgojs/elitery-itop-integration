@@ -23,13 +23,6 @@ class TicketChangeStateTest extends Command
     public $service;
     public $mapping;
 
-    public function __construct()
-    {
-        parent::__construct();
-        $this->service = new ApiService(env('ITOP_EXTERNAL_BASE_URL'), env('ITOP_EXTERNAL_USERNAME'), env('ITOP_EXTERNAL_PASSWORD'));
-        $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
-    }
-
     /**
      * The console command description.
      *
@@ -42,6 +35,9 @@ class TicketChangeStateTest extends Command
      */
     public function handle(): void
     {
+        $this->service = new ApiService(env('ITOP_EXTERNAL_BASE_URL'), env('ITOP_EXTERNAL_USERNAME'), env('ITOP_EXTERNAL_PASSWORD'));
+        $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
+    
         // get ticket
         $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->ticketId)->first();
         

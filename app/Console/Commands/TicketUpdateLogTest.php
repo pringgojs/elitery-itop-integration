@@ -31,18 +31,13 @@ class TicketUpdateLogTest extends Command
     public $ticketId = 23;
     public $mapping;
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
-    }
-
     /**
      * Execute the job.
      */
     public function handle(): void
     {
+        $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
+
         \info('Start ProcessTicketUpdateLogFromEliteryJob');
         
         $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->ticketId)->first();
