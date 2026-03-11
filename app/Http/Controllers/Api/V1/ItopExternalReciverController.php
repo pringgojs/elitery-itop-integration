@@ -12,6 +12,13 @@ use Illuminate\Http\Request;
 
 class ItopExternalReciverController extends Controller
 {
+    public function test()
+    {
+        return response()->json([
+            'message' => 'Hello from Itop Ebco'
+        ]);
+    }
+
     /**
      *  $request is json
      */
