@@ -99,19 +99,18 @@ class ProcessTicketUpdateJob implements ShouldQueue
                     $normalizedTicket['object']['id']
                 );
 
-                info('payload for inline image attachment:');
-                info($payload);
-
                 $response = $this->service->callApi($payload);
-                info($response);
+                info('Success insert new inline image');
             }
         }
 
+        info('Update description with adjusted URLs for inline images');
         // update description
         $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
         $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
         $newTicket->save();
-        
+
+        info('Update mapping sync');
         //sync mapping
         TicketMappingSync::sync(
             $externalTicketId = $ticket->id,
