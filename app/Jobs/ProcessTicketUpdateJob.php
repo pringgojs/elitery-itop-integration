@@ -87,6 +87,8 @@ class ProcessTicketUpdateJob implements ShouldQueue
         // create inline images that are still in the description
         // extract inline images from description and transfer them as attachments
         $inlineImages = InlineImageHelper::fetchInlineImages($pairs);
+        info('Found inline images: ');
+        info($inlineImages);
 
         if (!empty($inlineImages)) {
             info('generate payload for inline images');
