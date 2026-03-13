@@ -203,4 +203,14 @@ class InlineImageHelper
 
         return ItopServiceBuilder::payloadAttachmentCreate($payload);
     }
+
+    public static function remove($itemClass, $itemId, $connection = null)
+    {
+        $connection = $connection ?? env('DB_ITOP_EXTERNAL');
+
+        $attachments = InlineImage::on($connection)
+            ->where('item_class', $itemClass)
+            ->where('item_id', $itemId)
+            ->delete();
+    }
 }

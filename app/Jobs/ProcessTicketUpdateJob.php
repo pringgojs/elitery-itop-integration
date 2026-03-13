@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Helpers\InlineImageHelper;
 use App\Helpers\TicketMappingSync;
 use App\Models\TicketMapping;
 use Illuminate\Bus\Queueable;
@@ -78,6 +79,32 @@ class ProcessTicketUpdateJob implements ShouldQueue
         // normalize response update ticket
         $normalizedTicket = ResponseNormalizer::normalizeItopUpdateResponse($updateTicket);
         self::createAttachment($ticket, $normalizedTicket);
+
+        // remove inline images that are no longer in the description
+        $pairs = InlineImageHelper::extractFromHtml($ticket->description ?? '');
+        InlineImageHelper::remove($ticket->finalclass, $normalizedTicket['object']['id'], env('DB_ITOP_EXTERNAL'));
+
+        // create inline images that are still in the description
+        // extract inline images from description and transfer them as attachments
+        $inlineImages = InlineImageHelper::fetchInlineImages($pairs);
+
+        if (!empty($inlineImages)) {
+            info('generate payload for inline images');
+            foreach ($inlineImages as $inlineImage) {
+                $payload = InlineImageHelper::toAttachmentPayload(
+                    $inlineImage,
+                    $ticket->finalclass,
+                    $normalizedTicket['object']['id']
+                );
+
+                info('payload for inline image attachment:');
+                info($payload);
+
+                $response = $this->service->callApi($payload);
+                info($response);
+            }
+        }
+
 
         //sync mapping
         TicketMappingSync::sync(
