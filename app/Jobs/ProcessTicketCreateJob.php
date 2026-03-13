@@ -83,6 +83,9 @@ class ProcessTicketCreateJob implements ShouldQueue
             'caller_id' => env('CALLER_ID_ITOP_ELITERY', 12),
             'title' => $ticket->title,
             'description' => $ticket->description,
+            'impact' => $ticket->type()->impact ?? null,
+            'urgency' => $ticket->type()->urgency ?? null,
+            'priority' => $ticket->type()->priority ?? null,
             'status' => 'new',
             'private_log' => $ticket->getPrivateLog()
         ];

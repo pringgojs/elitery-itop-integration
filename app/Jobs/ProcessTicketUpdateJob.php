@@ -47,6 +47,11 @@ class ProcessTicketUpdateJob implements ShouldQueue
     {
         info('Start ProcessTicketUpdateJob for ticket id: ' . $this->ticketId);
 
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $this->ticketId);
+            return;
+        }
+
         if ($this->mapping->is_stop_sync) {
             info("Stop sync is true for ticket id: " . $this->ticketId);
             // set is_stop_sync to false, agar proses update berikutnya bisa berjalan normal
@@ -64,6 +69,8 @@ class ProcessTicketUpdateJob implements ShouldQueue
         
         // generate payload for update ticket
         $updatePayload = $this->generatePayload($ticket, $this->mapping->elitery_ticket_id);
+        info('Generated payload for ticket update');
+        info($updatePayload);
 
         // call API update ticket
         $updateTicket = $this->service->callApi($updatePayload);
@@ -93,6 +100,9 @@ class ProcessTicketUpdateJob implements ShouldQueue
             'caller_id' => env('CALLER_ID_ITOP_ELITERY', 12),
             'title' => $ticket->title,
             'description' => $ticket->description,
+            'impact' => $ticket->type()->impact ?? null,
+            'urgency' => $ticket->type()->urgency ?? null,
+            'priority' => $ticket->type()->priority ?? null,
             'private_log' => $ticket->getPrivateLog(),
             'key' => $internalTicketId
         ];

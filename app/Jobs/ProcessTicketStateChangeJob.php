@@ -48,6 +48,8 @@ class ProcessTicketStateChangeJob implements ShouldQueue
         // generate payload for update ticket
         $updatePayload = $this->generatePayload($ticket);
 
+        info('Generated payload for ticket state change', $updatePayload);
+
         // call API update ticket
         $updateTicket = $this->service->callApi($updatePayload);
 
@@ -100,7 +102,8 @@ class ProcessTicketStateChangeJob implements ShouldQueue
             info('Using provided stimulus: ' . $stimulus);
         } else {
             if ($ticketElitery->status(true) === 'assigned' && (in_array($ticketElitery->finalclass, ['UserRequest', 'Incident']))) {
-                // $payload['fields']['agent_id'] = $ticketElitery->type()->pending_reason;
+                $payload['fields']['agent_id'] = env('AGENT_ID_ITOP_EXTERNAL');
+                $payload['fields']['team_id'] = env('TEAM_ID_ITOP_EXTERNAL');
                 info('Ticket assigned');
                 $payload['private_log'] = 'Ticket Assigned';
             }
