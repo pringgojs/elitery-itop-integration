@@ -12,6 +12,7 @@ use Pringgojs\LaravelItop\Models\Ticket;
 use Pringgojs\LaravelItop\Services\ApiService;
 use Pringgojs\LaravelItop\Services\ItopServiceBuilder;
 use Pringgojs\LaravelItop\Utils\ResponseNormalizer;
+use App\Helpers\InlineImageHelper;
 
 class ProcessTicketCreateJob implements ShouldQueue
 {
@@ -43,25 +44,52 @@ class ProcessTicketCreateJob implements ShouldQueue
         info('ticket created');
         info($normalizedTicket);
         
-        $attachments = $ticket->attachments;
+        $attachments = $ticket->attachments ?? [];
 
-        if (!$attachments) return;
+        // process regular attachments from the ticket
+        if (!empty($attachments)) {
+            info('generate payload for attachment create');
+            foreach ($attachments as $attachment) {
+                $payload = ItopServiceBuilder::payloadAttachmentCreate([
+                    'item_class' => $ticket->finalclass,
+                    'item_id' => $normalizedTicket['object']['id'],
+                    'item_org_id' => env('ORG_ID_ITOP_ELITERY', 2),
+                    'contents' => [
+                        'filename' => $attachment->contents_filename,
+                        'mimetype' => $attachment->contents_mimetype,
+                        'binary' => base64_encode($attachment->contents_data),
+                    ]
+                ]);
 
-        info('generate payload for attachment create');
-        foreach ($attachments as $attachment) {
-            $payload = ItopServiceBuilder::payloadAttachmentCreate([
-                'item_class' => $ticket->finalclass,
-                'item_id' => $normalizedTicket['object']['id'],
-                'item_org_id' => env('ORG_ID_ITOP_ELITERY', 2),
-                'contents' => [
-                    'filename' => $attachment->contents_filename,
-                    'mimetype' => $attachment->contents_mimetype,
-                    'binary' => base64_encode($attachment->contents_data),
-                ]
-            ]);
-
-            $response = $service->callApi($payload);
+                $response = $service->callApi($payload);
+            }
         }
+
+        // extract inline images from description and transfer them as attachments
+        $pairs = InlineImageHelper::extractFromHtml($ticket->description ?? '');
+        $inlineImages = InlineImageHelper::fetchInlineImages($pairs);
+
+        if (!empty($inlineImages)) {
+            info('generate payload for inline images');
+            foreach ($inlineImages as $inlineImage) {
+                $payload = InlineImageHelper::toAttachmentPayload(
+                    $inlineImage,
+                    $ticket->finalclass,
+                    $normalizedTicket['object']['id']
+                );
+
+                info('payload for inline image attachment:');
+                info($payload);
+
+                $response = $service->callApi($payload);
+                info($response);
+            }
+        }
+
+        // update description
+        $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
+        $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
+        $newTicket->save();
 
         //sync mapping
         TicketMappingSync::sync(
