@@ -44,6 +44,12 @@ class ProcessTicketCreateJob implements ShouldQueue
         info('ticket created');
         info($normalizedTicket);
         
+        //sync mapping
+        TicketMappingSync::sync(
+            $externalTicketId = $ticket->id,
+            $internalTicketId = $normalizedTicket['object']['id'],
+            $ticket->finalclass);
+            
         $attachments = $ticket->attachments ?? [];
 
         // process regular attachments from the ticket
@@ -94,11 +100,7 @@ class ProcessTicketCreateJob implements ShouldQueue
         } catch (\Throwable $th) {
             info('Failed to update description with adjusted URLs for inline images: ' . $th->getMessage());
         }
-        //sync mapping
-        TicketMappingSync::sync(
-            $externalTicketId = $ticket->id,
-            $internalTicketId = $normalizedTicket['object']['id'],
-            $ticket->finalclass);
+        
 
         info('End ProcessTicketCreateJob');
     }
