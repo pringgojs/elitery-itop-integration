@@ -86,11 +86,14 @@ class ProcessTicketCreateJob implements ShouldQueue
             }
         }
 
-        // update description
-        $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
-        $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
-        $newTicket->save();
-
+        try {
+            // update description
+            $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
+            $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
+            $newTicket->save();
+        } catch (\Throwable $th) {
+            info('Failed to update description with adjusted URLs for inline images: ' . $th->getMessage());
+        }
         //sync mapping
         TicketMappingSync::sync(
             $externalTicketId = $ticket->id,
