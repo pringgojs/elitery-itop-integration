@@ -36,11 +36,12 @@
 {
   "operation": "core/apply_stimulus",
   "class": "UserRequest",
-  "key": 22,
+  "key": 57,
   "stimulus": "ev_assign",
   "fields": {
-    "agent_id": 12,
-    "public_log": "Ticket assigned"
+    "public_log": "Ticket assigned",
+    "agent_id": 41,
+    "team_id": 36
   },
   "comment": "Assigned by system"
 }

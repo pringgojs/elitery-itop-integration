@@ -78,7 +78,7 @@ class InlineImageHelper
      * @param string|null $destConnection Optional DB connection name for destination itop (defaults to env('DB_ITOP_EXTERNAL'))
      * @return string Adjusted HTML
      */
-    public static function adjustDescriptionForDestination(string $html, string $destBaseUrl, ?string $destConnection = null): string
+    public static function adjustDescriptionForDestination(string $html, string $destBaseUrl, ?string $destConnection = null, int $maxImages = 250): string
     {
         if (trim($html) === '') {
             return $html;
@@ -92,12 +92,12 @@ class InlineImageHelper
         $doc->loadHTML(mb_convert_encoding($htmlWrapped, 'HTML-ENTITIES', 'UTF-8'));
 
         $imgs = $doc->getElementsByTagName('img');
+        $secrets = [];
 
         foreach ($imgs as $img) {
             $secret = $img->getAttribute('data-img-secret') ?: null;
 
             if (!$secret) {
-                // try parse from src query
                 $src = $img->getAttribute('src');
                 if ($src) {
                     $parts = parse_url(html_entity_decode($src));
@@ -110,22 +110,58 @@ class InlineImageHelper
                 }
             }
 
+            if ($secret) {
+                $secrets[] = $secret;
+            }
+        }
+
+        $secrets = array_unique($secrets);
+
+        if (empty($secrets)) {
+            $body = $doc->getElementsByTagName('body')->item(0);
+            $inner = '';
+            foreach ($body->childNodes as $child) {
+                $inner .= $doc->saveHTML($child);
+            }
+            return $inner;
+        }
+
+        if (count($secrets) > $maxImages) {
+            // avoid massive load in one call, process in smaller chunks from caller
+            throw new \RuntimeException('Too many inline images in description: ' . count($secrets));
+        }
+
+        $destInlines = InlineImage::on($destConnection)
+            ->whereIn('secret', $secrets)
+            ->get()
+            ->keyBy('secret');
+
+        if (strpos($destBaseUrl, 'pages/ajax.document.php') !== false) {
+            $downloadPath = rtrim($destBaseUrl, '?&');
+        } else {
+            $downloadPath = rtrim($destBaseUrl, '/') . '/pages/ajax.document.php';
+        }
+
+        foreach ($imgs as $img) {
+            $secret = $img->getAttribute('data-img-secret') ?: null;
             if (!$secret) {
+                $src = $img->getAttribute('src');
+                if ($src) {
+                    $parts = parse_url(html_entity_decode($src));
+                    if (!empty($parts['query'])) {
+                        parse_str($parts['query'], $qs);
+                        if (isset($qs['s'])) {
+                            $secret = $qs['s'];
+                        }
+                    }
+                }
+            }
+
+            if (!$secret || !isset($destInlines[$secret])) {
                 continue;
             }
 
-            $destInline = InlineImage::on($destConnection)->where('secret', $secret)->first();
-            if (!$destInline) {
-                continue;
-            }
-
-            // build download path
-            if (strpos($destBaseUrl, 'pages/ajax.document.php') !== false) {
-                $downloadPath = rtrim($destBaseUrl, '?&');
-            } else {
-                $downloadPath = rtrim($destBaseUrl, '/') . '/pages/ajax.document.php';
-            }
-
+            $destInline = $destInlines[$secret];
             $newSrc = $downloadPath . '?operation=download_inlineimage&id=' . $destInline->id . '&s=' . $destInline->secret;
 
             $img->setAttribute('src', $newSrc);
@@ -133,12 +169,14 @@ class InlineImageHelper
             $img->setAttribute('data-img-secret', $destInline->secret);
         }
 
-        // return innerHTML of body
         $body = $doc->getElementsByTagName('body')->item(0);
         $inner = '';
         foreach ($body->childNodes as $child) {
             $inner .= $doc->saveHTML($child);
         }
+
+        unset($doc);
+        gc_collect_cycles();
 
         return $inner;
     }
