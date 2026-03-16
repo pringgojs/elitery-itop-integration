@@ -88,8 +88,7 @@ class ProcessTicketUpdateJob implements ShouldQueue
         // extract inline images from description and transfer them as attachments
         $inlineImages = InlineImageHelper::fetchInlineImages($pairs);
         info('Found inline images: ');
-        info($inlineImages);
-
+        
         if (!empty($inlineImages)) {
             info('generate payload for inline images');
             foreach ($inlineImages as $inlineImage) {
@@ -106,9 +105,13 @@ class ProcessTicketUpdateJob implements ShouldQueue
 
         info('Update description with adjusted URLs for inline images');
         // update description
-        $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
-        $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
-        $newTicket->save();
+        try {
+            $newTicket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($normalizedTicket['object']['id'])->first();
+            $newTicket->description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', env('ITOP_ELITERY_BASE_URL'), env('DB_ITOP_ELITERY'));
+            $newTicket->save();
+        } catch (\Throwable $th) {
+            info('Failed to update description with adjusted URLs for inline images: ' . $th->getMessage());
+        }
 
         info('Update mapping sync');
         //sync mapping
