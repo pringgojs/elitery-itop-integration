@@ -28,6 +28,7 @@ class ProcessTicketUpdateLogFromElitery implements ShouldQueue
     {
         $this->ticketId = $ticketId;
         $this->mapping = TicketMapping::where('elitery_ticket_id', $this->ticketId)->first();
+        
 
     }
 
@@ -37,6 +38,11 @@ class ProcessTicketUpdateLogFromElitery implements ShouldQueue
     public function handle(): void
     {
         \info('Start ProcessTicketUpdateLogFromEliteryJob');
+
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $this->ticketId);
+            return;
+        }
         
         $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->ticketId)->first();
 

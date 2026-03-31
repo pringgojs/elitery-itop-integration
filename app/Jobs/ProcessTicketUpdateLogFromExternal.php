@@ -28,7 +28,7 @@ class ProcessTicketUpdateLogFromExternal implements ShouldQueue
     {
         $this->ticketId = $ticketId;
         $this->mapping = TicketMapping::where('external_ticket_id', $this->ticketId)->first();
-
+        
     }
 
     /**
@@ -37,6 +37,10 @@ class ProcessTicketUpdateLogFromExternal implements ShouldQueue
     public function handle(): void
     {
         \info('Start ProcessTicketUpdateLogFromExternalJob');
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $this->ticketId);
+            return;
+        }
         
         $ticket = Ticket::on(env('DB_ITOP_EXTERNAL'))->whereId($this->ticketId)->first();
 

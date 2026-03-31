@@ -74,8 +74,6 @@ class ProcessAttachmentUpdateJob implements ShouldQueue
             $this->mapping = TicketMapping::where('external_ticket_id', $this->sourceTicket->id)->first();
             $this->ticketId = $this->sourceTicket->id;
 
-            info('mapping external_ticket_id: '.$this->sourceTicket->id);
-            info('mapping data: '.json_encode($this->mapping));
             // target is elitery
             $this->targetService = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
             $this->targetDb = env('DB_ITOP_ELITERY');

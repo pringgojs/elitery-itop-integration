@@ -42,6 +42,11 @@ class ProcessTicketStateChangeJob implements ShouldQueue
      */
     public function handle(): void
     {
+        if (! $this->mapping) {
+            info("No mapping found for ticket id: " . $this->ticketId);
+            return;
+        }
+        
         // get ticket
         $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->ticketId)->first();
         
