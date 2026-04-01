@@ -155,6 +155,10 @@ class ProcessTicketUpdateJob implements ShouldQueue
         
         /* get ticket from elitery database */
         $ticket = Ticket::on(env('DB_ITOP_ELITERY'))->whereId($this->mapping->elitery_ticket_id)->first();
+        if (! $ticket) {
+            info('Target ticket not found: ' . $this->mapping->elitery_ticket_id);
+            return;
+        }
         
         /* generate payload for attachment delete */
         foreach ($ticket->attachments as $attachment) {
