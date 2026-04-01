@@ -43,6 +43,10 @@ class ProcessTicketCreateJob implements ShouldQueue
         $normalizedTicket = ResponseNormalizer::normalizeItopCreateResponse($newTicket);
         info('ticket created');
         info($normalizedTicket);
+        if (!isset($normalizedTicket['object']['id'])) {
+            info('failed to create ticket in iTop, response:');
+            return;
+        }
         
         //sync mapping
         TicketMappingSync::sync(
