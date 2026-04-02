@@ -192,20 +192,33 @@ class InlineImageHelper
     public static function fetchInlineImages(array $pairs, ?string $connection = null): array
     {
         $connection = $connection ?? env('DB_ITOP_EXTERNAL');
+
+        $filtered = array_filter($pairs, function ($p) {
+            return isset($p['id']) && isset($p['secret']);
+        });
+
+        if (empty($filtered)) {
+            return [];
+        }
+
+        $ids = array_unique(array_column($filtered, 'id'));
+        $secrets = array_unique(array_column($filtered, 'secret'));
+
+        $models = InlineImage::on($connection)
+            ->whereIn('id', $ids)
+            ->whereIn('secret', $secrets)
+            ->get();
+
+        $map = [];
+        foreach ($models as $m) {
+            $map[$m->id . '|' . $m->secret] = $m;
+        }
+
         $found = [];
-
-        foreach ($pairs as $pair) {
-            if (!isset($pair['id']) || !isset($pair['secret'])) {
-                continue;
-            }
-
-            $model = InlineImage::on($connection)
-                ->where('id', $pair['id'])
-                ->where('secret', $pair['secret'])
-                ->first();
-
-            if ($model) {
-                $found[] = $model;
+        foreach ($filtered as $pair) {
+            $key = $pair['id'] . '|' . $pair['secret'];
+            if (isset($map[$key])) {
+                $found[] = $map[$key];
             }
         }
 
