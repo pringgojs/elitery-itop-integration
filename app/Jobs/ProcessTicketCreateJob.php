@@ -40,6 +40,8 @@ class ProcessTicketCreateJob implements ShouldQueue
         /* call Itop Elitery API */
         $service = new ApiService(env('ITOP_ELITERY_BASE_URL'), env('ITOP_ELITERY_USERNAME'), env('ITOP_ELITERY_PASSWORD'));
         $newTicket = $service->callApi($this->generatePayload($ticket));
+        info('response from iTop create ticket API:');
+        info($newTicket);
         $normalizedTicket = ResponseNormalizer::normalizeItopCreateResponse($newTicket);
         info('ticket created');
         info($normalizedTicket);
