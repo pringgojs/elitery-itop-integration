@@ -42,6 +42,11 @@ class ProcessTicketCreateJob implements ShouldQueue
         $newTicket = $service->callApi($this->generatePayload($ticket));
         info('response from iTop create ticket API:');
         info($newTicket);
+        if (empty($newTicket) || !isset($newTicket['code']) || $newTicket['code'] != 0) {
+            info('failed to create ticket in iTop, response:');
+            info($newTicket);
+            return;
+        }
         $normalizedTicket = ResponseNormalizer::normalizeItopCreateResponse($newTicket);
         info('ticket created');
         info($normalizedTicket);
