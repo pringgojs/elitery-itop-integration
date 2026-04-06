@@ -87,6 +87,10 @@ class ProcessTicketCreateJob implements ShouldQueue
 
     public function generatePayload($ticket)
     {
+        $description = $ticket->description ?? '-';
+        // unwrap any <figure> wrappers so only <img> remains
+        $description = InlineImageHelper::unwrapFigureTags($description);
+
         $payload= [
             'operation' => 'core/create',
             'comment' => 'ticket created from API',
@@ -95,7 +99,7 @@ class ProcessTicketCreateJob implements ShouldQueue
             'org_id' => env('ORG_ID_ITOP_ELITERY', 2),
             'caller_id' => env('CALLER_ID_ITOP_ELITERY', 12),
             'title' => $ticket->title,
-            'description' => $ticket->description ?? '-',
+            'description' => $description,
             'impact' => $ticket->type()->impact ?? null,
             'urgency' => $ticket->type()->urgency ?? null,
             'priority' => $ticket->type()->priority ?? null,

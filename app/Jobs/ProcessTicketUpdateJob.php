@@ -89,59 +89,6 @@ class ProcessTicketUpdateJob implements ShouldQueue
         $t1 = microtime(true);
         info('createAttachment total duration: ' . round($t1 - $t0, 4) . 's');
 
-        // remove inline images that are no longer in the description
-        $pairs = InlineImageHelper::extractFromHtml($ticket->description ?? '');
-        $t0 = microtime(true);
-        InlineImageHelper::remove($ticket->finalclass, $normalizedTicket['object']['id'], env('DB_ITOP_EXTERNAL'));
-        $t1 = microtime(true);
-        info('InlineImageHelper::remove duration: ' . round($t1 - $t0, 4) . 's');
-
-        // create inline images that are still in the description
-        // extract inline images from description and transfer them as attachments
-        $t0 = microtime(true);
-        $inlineImages = InlineImageHelper::fetchInlineImages($pairs);
-        $t1 = microtime(true);
-        info('InlineImageHelper::fetchInlineImages duration: ' . round($t1 - $t0, 4) . 's');
-        info('Found inline images: ' . count($inlineImages));
-
-        if (!empty($inlineImages)) {
-            info('generate payload for inline images');
-            $count = 0;
-            $totalInlineTime = 0;
-            foreach ($inlineImages as $inlineImage) {
-                $payload = InlineImageHelper::toAttachmentPayload(
-                    $inlineImage,
-                    $ticket->finalclass,
-                    $normalizedTicket['object']['id']
-                );
-
-                $timg0 = microtime(true);
-                $response = $this->service->callApi($payload);
-                $timg1 = microtime(true);
-                $dur = $timg1 - $timg0;
-                $totalInlineTime += $dur;
-                $count++;
-                info('Inserted inline image id=' . ($inlineImage->id ?? 'unknown') . ' duration: ' . round($dur, 4) . 's');
-            }
-            info('Inline images upload count: ' . $count . ' total duration: ' . round($totalInlineTime, 4) . 's');
-        }
-
-        info('Update description with adjusted URLs for inline images');
-        // update description
-        try {
-            info('Start adjusting description for inline images');
-            $eliteryConn = env('DB_ITOP_ELITERY');
-            $eliteryBase = env('ITOP_ELITERY_BASE_URL');
-            $internalId = $normalizedTicket['object']['id'];
-
-            $description = InlineImageHelper::adjustDescriptionForDestination($ticket->description ?? '', $eliteryBase, $eliteryConn);
-            info('Adjusted description length: ' . strlen($description));
-
-            Ticket::on($eliteryConn)->whereId($internalId)->update(['description' => $description]);
-        } catch (\Throwable $th) {
-            info('Failed to update description with adjusted URLs for inline images: ' . $th->getMessage());
-        }
-
         info('Update mapping sync');
         //sync mapping
         TicketMappingSync::sync(
@@ -155,6 +102,10 @@ class ProcessTicketUpdateJob implements ShouldQueue
 
     public function generatePayload($ticket, $internalTicketId)
     {
+        $description = $ticket->description ?? '-';
+        // unwrap any <figure> wrappers so only <img> remains
+        $description = InlineImageHelper::unwrapFigureTags($description);
+
         $payload = [
             'operation' => 'core/update',
             'comment' => 'ticket updated from API',
@@ -163,7 +114,7 @@ class ProcessTicketUpdateJob implements ShouldQueue
             'org_id' => env('ORG_ID_ITOP_ELITERY', 2),
             'caller_id' => env('CALLER_ID_ITOP_ELITERY', 12),
             'title' => $ticket->title,
-            'description' => $ticket->description,
+            'description' => $description,
             'impact' => $ticket->type()->impact ?? null,
             'urgency' => $ticket->type()->urgency ?? null,
             'priority' => $ticket->type()->priority ?? null,

@@ -255,6 +255,57 @@ class InlineImageHelper
         return ItopServiceBuilder::payloadAttachmentCreate($payload);
     }
 
+    /**
+     * Remove <figure> wrappers from HTML, keeping only the inner <img> element.
+     * If a <figure> contains no <img>, its child nodes are unwrapped.
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function unwrapFigureTags(string $html): string
+    {
+        if (trim($html) === '') {
+            return $html;
+        }
+
+        libxml_use_internal_errors(true);
+        $doc = new \DOMDocument();
+        $htmlWrapped = '<!doctype html><html><body>' . $html . '</body></html>';
+        $doc->loadHTML(mb_convert_encoding($htmlWrapped, 'HTML-ENTITIES', 'UTF-8'));
+
+        $figures = $doc->getElementsByTagName('figure');
+
+        // iterate backwards because NodeList is live
+        for ($i = $figures->length - 1; $i >= 0; $i--) {
+            $figure = $figures->item($i);
+
+            // find first img inside the figure
+            $imgs = $figure->getElementsByTagName('img');
+            if ($imgs->length > 0) {
+                $img = $imgs->item(0);
+                $newNode = $doc->importNode($img, true);
+                $figure->parentNode->replaceChild($newNode, $figure);
+            } else {
+                // unwrap children: move all children before the figure, then remove figure
+                while ($figure->firstChild) {
+                    $figure->parentNode->insertBefore($figure->firstChild, $figure);
+                }
+                $figure->parentNode->removeChild($figure);
+            }
+        }
+
+        $body = $doc->getElementsByTagName('body')->item(0);
+        $inner = '';
+        foreach ($body->childNodes as $child) {
+            $inner .= $doc->saveHTML($child);
+        }
+
+        unset($doc);
+        gc_collect_cycles();
+
+        return $inner;
+    }
+
     public static function remove($itemClass, $itemId, $connection = null)
     {
         $connection = $connection ?? env('DB_ITOP_EXTERNAL');
