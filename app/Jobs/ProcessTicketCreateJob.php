@@ -91,6 +91,14 @@ class ProcessTicketCreateJob implements ShouldQueue
         // unwrap any <figure> wrappers so only <img> remains
         $description = InlineImageHelper::unwrapFigureTags($description);
 
+        $privateLogEntries = $ticket->getPrivateLog();
+        $processedPrivateLog = [];
+        foreach (($privateLogEntries ?? []) as $entry) {
+            $message = $entry['message'] ?? '';
+            $entry['message'] = InlineImageHelper::unwrapFigureTags((string)$message);
+            $processedPrivateLog[] = $entry;
+        }
+
         $payload= [
             'operation' => 'core/create',
             'comment' => 'ticket created from API',
@@ -104,7 +112,7 @@ class ProcessTicketCreateJob implements ShouldQueue
             'urgency' => $ticket->type()->urgency ?? null,
             'priority' => $ticket->type()->priority ?? null,
             'status' => 'new',
-            'private_log' => $ticket->getPrivateLog()
+            'private_log' => $processedPrivateLog
         ];
 
         return ItopServiceBuilder::payloadTicketCreate($payload);

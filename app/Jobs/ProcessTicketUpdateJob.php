@@ -106,6 +106,14 @@ class ProcessTicketUpdateJob implements ShouldQueue
         // unwrap any <figure> wrappers so only <img> remains
         $description = InlineImageHelper::unwrapFigureTags($description);
 
+        $privateLogEntries = $ticket->getPrivateLog();
+        $processedPrivateLog = [];
+        foreach (($privateLogEntries ?? []) as $entry) {
+            $message = $entry['message'] ?? '';
+            $entry['message'] = InlineImageHelper::unwrapFigureTags((string)$message);
+            $processedPrivateLog[] = $entry;
+        }
+
         $payload = [
             'operation' => 'core/update',
             'comment' => 'ticket updated from API',
@@ -118,7 +126,7 @@ class ProcessTicketUpdateJob implements ShouldQueue
             'impact' => $ticket->type()->impact ?? null,
             'urgency' => $ticket->type()->urgency ?? null,
             'priority' => $ticket->type()->priority ?? null,
-            'private_log' => $ticket->getPrivateLog(),
+            'private_log' => $processedPrivateLog,
             'key' => $internalTicketId
         ];
 

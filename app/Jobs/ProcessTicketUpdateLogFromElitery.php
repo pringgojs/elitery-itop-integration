@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Helpers\TicketMappingSync;
 use App\Models\TicketMapping;
+use App\Helpers\InlineImageHelper;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -65,12 +66,22 @@ class ProcessTicketUpdateLogFromElitery implements ShouldQueue
 
     public function generatePayload($ticket)
     {
+        $privateLogEntries = $ticket->getPrivateLog();
+
+        // process each private_log entry message to remove <figure> wrappers
+        $processedPrivateLog = [];
+        foreach (($privateLogEntries ?? []) as $entry) {
+            $message = $entry['message'] ?? '';
+            $entry['message'] = InlineImageHelper::unwrapFigureTags((string)$message);
+            $processedPrivateLog[] = $entry;
+        }
+
         $payload= [
             'operation' => 'core/update',
             'comment' => 'ticket updated from API',
             'class' => $ticket->finalclass,
             'output_fields' => 'id, ref, title, status',
-            'private_log' => $ticket->getPrivateLog(),
+            'private_log' => $processedPrivateLog,
             'key' => $this->mapping->external_ticket_id
         ];
 
