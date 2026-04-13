@@ -112,6 +112,8 @@ class ProcessTicketCreateJob implements ShouldQueue
             'urgency' => $ticket->type()->urgency ?? null,
             'priority' => $ticket->type()->priority ?? null,
             'status' => 'new',
+            'service_id' => env('SERVICE_ID_ITOP_ELITERY'),
+            'servicesubcategory_id' => env('SERVICESUBCATEGORY_ID_ITOP_ELITERY'),
             'private_log' => $processedPrivateLog
         ];
 
